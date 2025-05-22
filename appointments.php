@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
     header('Location: logindoctor.php');
@@ -82,54 +85,95 @@ $stmt = $conn->prepare("
 $stmt->bind_param('i', $doctorId);
 $stmt->execute();
 $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// --- Thống kê dữ liệu cho chart ---
+$apptCountByStatus = ['pending' => 0, 'confirmed' => 0, 'cancelled' => 0];
+$apptCountByDate = [];
+$apptStatusByDate = [];
+
+foreach ($appointments as $appt) {
+    // Đếm theo trạng thái tổng
+    if (isset($apptCountByStatus[$appt['Status']])) {
+        $apptCountByStatus[$appt['Status']]++;
+    }
+
+    // Đếm số cuộc hẹn theo ngày
+    $date = $appt['AppointmentDate'];
+    if (!isset($apptCountByDate[$date])) {
+        $apptCountByDate[$date] = 0;
+    }
+    $apptCountByDate[$date]++;
+
+    // Đếm trạng thái theo ngày
+    if (!isset($apptStatusByDate[$date])) {
+        $apptStatusByDate[$date] = ['pending'=>0, 'confirmed'=>0, 'cancelled'=>0];
+    }
+    if (in_array($appt['Status'], ['pending', 'confirmed', 'cancelled'], true)) {
+        $apptStatusByDate[$date][$appt['Status']]++;
+    }
+}
+
+ksort($apptCountByDate);
+ksort($apptStatusByDate);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Doctor Portal – Danh sách cuộc hẹn</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
   <style>
     body { background: #f3edf7; }
     .sidebar {
-      width:240px; background:#c5dcff; min-height:100vh; padding:1rem;
-      display:flex; flex-direction:column;
+      width: 240px;
+      background: #c5dcff;
+      min-height: 100vh;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
     }
-    .sidebar .nav-link { color:#2f4f8a; margin-bottom:4px; border-radius:6px; }
+    .sidebar .nav-link {
+      color: #2f4f8a;
+      margin-bottom: 4px;
+      border-radius: 6px;
+    }
     .sidebar .nav-link.active,
-    .sidebar .nav-link:hover { background:#95b8ff; color:#fff; }
-    .content { padding:0 2rem 2rem; }
+    .sidebar .nav-link:hover {
+      background: #95b8ff;
+      color: #fff;
+    }
+    .content {
+      padding: 0 2rem 2rem;
+    }
     .card-container {
-      background:#fff;
-      border-radius:12px;
-      box-shadow:0 4px 12px rgba(0,0,0,.05);
-      padding:1rem;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.05);
+      padding: 1rem;
+      margin-bottom: 1rem;
     }
   </style>
 </head>
 <body>
 <div class="d-flex">
-  <!-- Sidebar -->
   <nav class="sidebar">
     <h3 class="text-white">Doctor Portal</h3>
     <ul class="nav nav-pills flex-column mt-3">
       <li class="nav-item"><a href="dashboard.php" class="nav-link">Tổng quan</a></li>
-      <li class="nav-item"><a href="patient.php"   class="nav-link">Bệnh nhân</a></li>
+      <li class="nav-item"><a href="patient.php" class="nav-link">Bệnh nhân</a></li>
       <li class="nav-item"><a href="prescriptions.php" class="nav-link">Đơn thuốc</a></li>
-      <li class="nav-item"><a href="appointments.php"  class="nav-link active">Cuộc hẹn</a></li>
-      <li class="nav-item"><a href="question.php"    class="nav-link">Phản hồi thắc mắc</a></li>
-      <li class="nav-item"><a href="settings.php"    class="nav-link">Cài đặt</a></li>
+      <li class="nav-item"><a href="appointments.php" class="nav-link active">Cuộc hẹn</a></li>
+      <li class="nav-item"><a href="question.php" class="nav-link">Phản hồi thắc mắc</a></li>
+      <li class="nav-item"><a href="settings.php" class="nav-link">Cài đặt</a></li>
     </ul>
     <div class="mt-auto">
       <a href="logout.php" class="btn btn-outline-light w-100 mt-3">Đăng xuất</a>
     </div>
   </nav>
 
-  <!-- Main content -->
   <div class="flex-grow-1">
-    <!-- Card header giống trang Patient -->
     <div class="container-fluid mt-3 mb-4">
       <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center py-3">
@@ -142,6 +186,22 @@ $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <div class="content">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card-container">
+            <canvas id="chartApptByStatus"></canvas>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="card-container mb-4">
+            <canvas id="chartApptByDate"></canvas>
+          </div>
+          <div class="card-container">
+            <canvas id="chartApptStatusByDate"></canvas>
+          </div>
+        </div>
+      </div>
+
       <div class="card-container">
         <table id="apptTable" class="table table-striped">
           <thead>
@@ -181,10 +241,8 @@ $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 </form>
               </td>
               <td>
-                <button class="btn btn-sm btn-primary btn-edit" data-bs-toggle="modal"
-                        data-bs-target="#editModal">Sửa</button>
-                <button class="btn btn-sm btn-danger btn-delete" data-bs-toggle="modal"
-                        data-bs-target="#deleteModal">Xóa</button>
+                <button class="btn btn-sm btn-primary btn-edit" data-bs-toggle="modal" data-bs-target="#editModal">Sửa</button>
+                <button class="btn btn-sm btn-danger btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal">Xóa</button>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -195,7 +253,6 @@ $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
   </div>
 </div>
 
-<!-- Modal Tạo -->
 <div class="modal fade" id="createModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <form method="post">
     <div class="modal-header">
@@ -242,7 +299,6 @@ $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
   </form>
 </div></div></div>
 
-<!-- Modal Sửa -->
 <div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <form method="post">
     <div class="modal-header">
@@ -290,7 +346,6 @@ $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
   </form>
 </div></div></div>
 
-<!-- Modal Xóa -->
 <div class="modal fade" id="deleteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <form method="post">
     <div class="modal-header">
@@ -309,11 +364,11 @@ $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
   </form>
 </div></div></div>
 
-<!-- JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   $(function(){
     $('#apptTable').DataTable({ pageLength: 10 });
@@ -330,6 +385,104 @@ $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $('.btn-delete').click(function(){
       $('#delApptId').val($(this).closest('tr').data('id'));
     });
+  });
+
+  // Biểu đồ Pie - Số cuộc hẹn theo trạng thái
+  const apptCountByStatus = <?= json_encode($apptCountByStatus) ?>;
+  const apptCountByDate = <?= json_encode($apptCountByDate) ?>;
+  const apptStatusByDate = <?= json_encode($apptStatusByDate) ?>;
+
+  const ctxStatus = document.getElementById('chartApptByStatus').getContext('2d');
+  new Chart(ctxStatus, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(apptCountByStatus).map(s => {
+        if(s==='pending') return 'Chưa đến';
+        if(s==='confirmed') return 'Đã đến';
+        if(s==='cancelled') return 'Hủy';
+        return s;
+      }),
+      datasets: [{
+        data: Object.values(apptCountByStatus),
+        backgroundColor: [
+          apptCountByStatus['pending'] > 0 ? '#facc15' : '#facc1555',
+          apptCountByStatus['confirmed'] > 0 ? '#22c55e' : '#22c55e55',
+          apptCountByStatus['cancelled'] > 0 ? '#ef4444' : '#ef444455',
+        ],
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Số cuộc hẹn theo trạng thái' },
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+
+  // Biểu đồ Bar - Số cuộc hẹn theo ngày
+  const ctxDate = document.getElementById('chartApptByDate').getContext('2d');
+  new Chart(ctxDate, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(apptCountByDate),
+      datasets: [{
+        label: 'Số cuộc hẹn',
+        data: Object.values(apptCountByDate),
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Số cuộc hẹn theo ngày' }
+      },
+      scales: {
+        y: { beginAtZero: true, precision: 0 }
+      }
+    }
+  });
+
+  // Biểu đồ Stacked Bar - Tỉ lệ trạng thái theo ngày
+  const ctxStatusByDate = document.getElementById('chartApptStatusByDate').getContext('2d');
+  const labelsDate = Object.keys(apptStatusByDate);
+  const dataPending = labelsDate.map(d => apptStatusByDate[d]?.pending ?? 0);
+  const dataConfirmed = labelsDate.map(d => apptStatusByDate[d]?.confirmed ?? 0);
+  const dataCancelled = labelsDate.map(d => apptStatusByDate[d]?.cancelled ?? 0);
+
+  new Chart(ctxStatusByDate, {
+    type: 'bar',
+    data: {
+      labels: labelsDate,
+      datasets: [
+        {
+          label: 'Chưa đến',
+          data: dataPending,
+          backgroundColor: '#facc15',
+        },
+        {
+          label: 'Đã đến',
+          data: dataConfirmed,
+          backgroundColor: '#22c55e',
+        },
+        {
+          label: 'Hủy',
+          data: dataCancelled,
+          backgroundColor: '#ef4444',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: 'Tỉ lệ trạng thái cuộc hẹn theo ngày' },
+        legend: { position: 'bottom' }
+      },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true, precision: 0 }
+      }
+    }
   });
 </script>
 </body>

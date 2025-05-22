@@ -1,18 +1,24 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
     header('Location: logindoctor.php');
     exit;
 }
+
 require_once __DIR__ . '/db_config.php';
+
+if (!$conn) {
+    die("Kết nối DB thất bại: " . mysqli_connect_error());
+}
 
 $doctorId = $_SESSION['linked_id'];
 $errors = [];
 $success = '';
 
-// Xử lý thêm, sửa, xóa đơn thuốc (giữ nguyên logic cũ) ...
-
-// === Xử lý thêm mới đơn thuốc ===
+// === Xử lý thêm mới hoặc sửa đơn thuốc ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     $patientId = intval($_POST['patient_id'] ?? 0);
@@ -28,42 +34,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($startDate === '') $errors[] = 'Chọn ngày bắt đầu';
 
     if (!$errors) {
-    if ($action === 'add') {
-        $sql = "INSERT INTO medication (PatientID, PrescribedByID, MedicationName, Dosage, Instructions, StartDate, EndDate)
-                VALUES (?, ?, ?, ?, ?, ?, ?)";
-        $stmt = $conn->prepare($sql);
-        $endDateVal = $endDate ?: null;
-        $stmt->bind_param('iisssss', $patientId, $doctorId, $medName, $dosage, $instructions, $startDate, $endDateVal);
-        if ($stmt->execute()) {
-            $success = 'Thêm đơn thuốc thành công.';
-        } else {
-            $errors[] = 'Lỗi khi thêm đơn thuốc: ' . $stmt->error;
-        }
-    } elseif ($action === 'edit') {
-        $medId = intval($_POST['medication_id'] ?? 0);
-        if (!$medId) {
-            $errors[] = 'ID đơn thuốc không hợp lệ.';
-        } else {
-            $sql = "UPDATE medication SET PatientID=?, MedicationName=?, Dosage=?, Instructions=?, StartDate=?, EndDate=?
-                    WHERE MedicationID=? AND PrescribedByID=?";
+        if ($action === 'add') {
+            $sql = "INSERT INTO medication (PatientID, PrescribedByID, MedicationName, Dosage, Instructions, StartDate, EndDate)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($sql);
+            if (!$stmt) die("Prepare lỗi: " . $conn->error);
             $endDateVal = $endDate ?: null;
-            $stmt->bind_param('isssssii', $patientId, $medName, $dosage, $instructions, $startDate, $endDateVal, $medId, $doctorId);
+            $stmt->bind_param('iisssss', $patientId, $doctorId, $medName, $dosage, $instructions, $startDate, $endDateVal);
             if ($stmt->execute()) {
-                $success = 'Cập nhật đơn thuốc thành công.';
+                $success = 'Thêm đơn thuốc thành công.';
             } else {
-                $errors[] = 'Lỗi khi cập nhật đơn thuốc: ' . $stmt->error;
+                $errors[] = 'Lỗi khi thêm đơn thuốc: ' . $stmt->error;
+            }
+        } elseif ($action === 'edit') {
+            $medId = intval($_POST['medication_id'] ?? 0);
+            if (!$medId) {
+                $errors[] = 'ID đơn thuốc không hợp lệ.';
+            } else {
+                $sql = "UPDATE medication SET PatientID=?, MedicationName=?, Dosage=?, Instructions=?, StartDate=?, EndDate=?
+                        WHERE MedicationID=? AND PrescribedByID=?";
+                $stmt = $conn->prepare($sql);
+                if (!$stmt) die("Prepare lỗi: " . $conn->error);
+                $endDateVal = $endDate ?: null;
+                $stmt->bind_param('isssssii', $patientId, $medName, $dosage, $instructions, $startDate, $endDateVal, $medId, $doctorId);
+                if ($stmt->execute()) {
+                    $success = 'Cập nhật đơn thuốc thành công.';
+                } else {
+                    $errors[] = 'Lỗi khi cập nhật đơn thuốc: ' . $stmt->error;
+                }
             }
         }
     }
 }
 
-}
-
-// Xóa
+// Xóa đơn thuốc
 if (isset($_GET['delete']) && intval($_GET['delete'])) {
     $delId = intval($_GET['delete']);
     $stmt = $conn->prepare("DELETE FROM medication WHERE MedicationID=? AND PrescribedByID=?");
+    if (!$stmt) die("Prepare lỗi: " . $conn->error);
     $stmt->bind_param('ii', $delId, $doctorId);
     if ($stmt->execute()) {
         $success = 'Xóa đơn thuốc thành công.';
@@ -72,7 +80,7 @@ if (isset($_GET['delete']) && intval($_GET['delete'])) {
     }
 }
 
-// Lấy danh sách thuốc
+// Lấy danh sách đơn thuốc
 $sql = <<<SQL
 SELECT
     m.MedicationID,
@@ -89,12 +97,14 @@ WHERE m.PrescribedByID = ?
 ORDER BY m.StartDate DESC
 SQL;
 $stmt = $conn->prepare($sql);
+if (!$stmt) die("Prepare lỗi: " . $conn->error);
 $stmt->bind_param('i', $doctorId);
 $stmt->execute();
 $medications = $stmt->get_result();
 
 // Lấy danh sách bệnh nhân
 $patientStmt = $conn->prepare("SELECT PatientID, CONCAT(FirstName, ' ', LastName) AS FullName FROM patient ORDER BY LastName, FirstName");
+if (!$patientStmt) die("Prepare lỗi: " . $conn->error);
 $patientStmt->execute();
 $patients = $patientStmt->get_result();
 
@@ -103,10 +113,42 @@ $editData = null;
 if (isset($_GET['edit']) && intval($_GET['edit'])) {
     $editId = intval($_GET['edit']);
     $stmtEdit = $conn->prepare("SELECT * FROM medication WHERE MedicationID=? AND PrescribedByID=?");
+    if (!$stmtEdit) die("Prepare lỗi: " . $conn->error);
     $stmtEdit->bind_param('ii', $editId, $doctorId);
     $stmtEdit->execute();
     $editData = $stmtEdit->get_result()->fetch_assoc();
 }
+
+// --- PHẦN XỬ LÝ THỐNG KÊ CHO CHART ---
+$now = new DateTime();
+$medCountByPatient = [];
+$medCountByName = [];
+$medCountByStatus = ['Còn hiệu lực' => 0, 'Hết hiệu lực' => 0];
+
+foreach ($medications as $med) {
+    $patientName = $med['PatientName'];
+    $medCountByPatient[$patientName] = ($medCountByPatient[$patientName] ?? 0) + 1;
+
+    $medName = $med['MedicationName'];
+    $medCountByName[$medName] = ($medCountByName[$medName] ?? 0) + 1;
+
+    $startDate = new DateTime($med['StartDate']);
+    $endDate = $med['EndDate'] ? new DateTime($med['EndDate']) : null;
+
+    if ($endDate === null || $endDate >= $now) {
+        $medCountByStatus['Còn hiệu lực']++;
+    } else {
+        $medCountByStatus['Hết hiệu lực']++;
+    }
+}
+
+arsort($medCountByPatient);
+$medCountByPatient = array_slice($medCountByPatient, 0, 5, true);
+
+arsort($medCountByName);
+$medCountByName = array_slice($medCountByName, 0, 5, true);
+
+$medications->data_seek(0);
 ?>
 
 <!DOCTYPE html>
@@ -213,6 +255,18 @@ if (isset($_GET['edit']) && intval($_GET['edit'])) {
       border-color: #c999fd;
       color: #fff;
     }
+    /* Chart container styles */
+    .chart-container {
+      background: white;
+      padding: 15px;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+    }
+    canvas {
+      max-width: 100% !important;
+      height: 250px !important;
+    }
   </style>
 </head>
 <body>
@@ -233,42 +287,28 @@ if (isset($_GET['edit']) && intval($_GET['edit'])) {
     </div>
   </nav>
 
-  <div class="flex-grow-1">
-    <!-- Phần header mới giống Patient -->
-    <div class="container-fluid mt-3 mb-4">
-      <div class="card">
-        <div class="card-body d-flex justify-content-between align-items-center py-3">
-          <h4 class="mb-0">Đơn thuốc</h4>
-          <div class="dropdown">
-            <button class="btn btn-sm btn-light dropdown-toggle" type="button"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-              <?= htmlspecialchars($_SESSION['username']) ?>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="settings.php">Cài đặt</a></li>
-              <li><a class="dropdown-item" href="logout.php">Đăng xuất</a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
+  <div class="flex-grow-1 p-4">
+    <div class="topbar">
+      <h4>Đơn thuốc</h4>
+      <div><?= htmlspecialchars($_SESSION['username'] ?? '') ?></div>
     </div>
 
     <div class="content">
-      <?php if ($errors): ?>
-        <div class="alert alert-danger">
-          <ul>
-            <?php foreach ($errors as $e): ?>
-              <li><?= htmlspecialchars($e) ?></li>
-            <?php endforeach; ?>
-          </ul>
+
+      <!-- Chart báo cáo -->
+      <div class="row">
+        <div class="col-md-4 chart-container">
+          <canvas id="chartByPatient"></canvas>
         </div>
-      <?php endif; ?>
+        <div class="col-md-4 chart-container">
+          <canvas id="chartByMedication"></canvas>
+        </div>
+        <div class="col-md-4 chart-container">
+          <canvas id="chartByStatus"></canvas>
+        </div>
+      </div>
 
-      <?php if ($success): ?>
-        <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
-      <?php endif; ?>
-
-      <div class="row g-4">
+      <div class="row g-4 mt-4">
         <div class="col-lg-4">
           <div class="form-section">
             <h5><?= $editData ? 'Chỉnh sửa đơn thuốc' : 'Thêm mới đơn thuốc' ?></h5>
@@ -283,12 +323,10 @@ if (isset($_GET['edit']) && intval($_GET['edit'])) {
                 <select id="patient_id" name="patient_id" class="form-select" required>
                   <option value="">-- Chọn bệnh nhân --</option>
                   <?php
-                  // Reset kết quả để loop lại
                   $patients->data_seek(0);
                   while ($p = $patients->fetch_assoc()):
                   ?>
-                    <option value="<?= $p['PatientID'] ?>"
-                      <?= ($editData && $editData['PatientID'] == $p['PatientID']) ? 'selected' : '' ?>>
+                    <option value="<?= $p['PatientID'] ?>" <?= ($editData && $editData['PatientID'] == $p['PatientID']) ? 'selected' : '' ?>>
                       <?= htmlspecialchars($p['FullName']) ?>
                     </option>
                   <?php endwhile; ?>
@@ -297,20 +335,20 @@ if (isset($_GET['edit']) && intval($_GET['edit'])) {
 
               <div class="mb-3">
                 <label for="medication_name" class="form-label">Tên thuốc</label>
-                <input type="text" id="medication_name" name="medication_name" class="form-control"
-                       required value="<?= htmlspecialchars($editData['MedicationName'] ?? '') ?>">
+                <input type="text" id="medication_name" name="medication_name" class="form-control" required
+                       value="<?= htmlspecialchars($editData['MedicationName'] ?? '') ?>">
               </div>
 
               <div class="mb-3">
                 <label for="dosage" class="form-label">Liều dùng</label>
-                <input type="text" id="dosage" name="dosage" class="form-control"
-                       required value="<?= htmlspecialchars($editData['Dosage'] ?? '') ?>">
+                <input type="text" id="dosage" name="dosage" class="form-control" required
+                       value="<?= htmlspecialchars($editData['Dosage'] ?? '') ?>">
               </div>
 
               <div class="mb-3">
                 <label for="start_date" class="form-label">Ngày bắt đầu</label>
-                <input type="date" id="start_date" name="start_date" class="form-control"
-                       required value="<?= htmlspecialchars($editData['StartDate'] ?? '') ?>">
+                <input type="date" id="start_date" name="start_date" class="form-control" required
+                       value="<?= htmlspecialchars($editData['StartDate'] ?? '') ?>">
               </div>
 
               <div class="mb-3">
@@ -361,8 +399,7 @@ if (isset($_GET['edit']) && intval($_GET['edit'])) {
                   <td><?= htmlspecialchars($row['Instructions']) ?></td>
                   <td>
                     <a href="?edit=<?= $row['MedicationID'] ?>" class="btn btn-sm btn-warning">Sửa</a>
-                    <a href="?delete=<?= $row['MedicationID'] ?>" class="btn btn-sm btn-danger"
-                       onclick="return confirm('Bạn có chắc muốn xóa đơn thuốc này?');">Xóa</a>
+                    <a href="?delete=<?= $row['MedicationID'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc muốn xóa đơn thuốc này?');">Xóa</a>
                   </td>
                 </tr>
                 <?php endwhile; ?>
@@ -375,25 +412,94 @@ if (isset($_GET['edit']) && intval($_GET['edit'])) {
   </div>
 </div>
 
+<!-- Thư viện JS cần thiết -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
+  // Khởi tạo DataTables cho bảng
   $(document).ready(function() {
-    $('#presTable').DataTable({
-      pageLength: 10,
-      lengthMenu: [5,10,25],
-      language: {
-        search: 'Tìm kiếm:',
-        lengthMenu: 'Hiển thị _MENU_',
-        paginate: {
-          previous: 'Trước',
-          next: 'Tiếp'
-        },
-        zeroRecords: 'Không tìm thấy kết quả'
+    $('#presTable').DataTable();
+  });
+
+  // Dữ liệu PHP sang JS cho biểu đồ
+  const medCountByPatient = <?= json_encode($medCountByPatient) ?>;
+  const medCountByName = <?= json_encode($medCountByName) ?>;
+  const medCountByStatus = <?= json_encode($medCountByStatus) ?>;
+
+  // Biểu đồ số đơn theo bệnh nhân
+  const ctxPatient = document.getElementById('chartByPatient').getContext('2d');
+  new Chart(ctxPatient, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(medCountByPatient),
+      datasets: [{
+        label: 'Số đơn thuốc',
+        data: Object.values(medCountByPatient),
+        backgroundColor: 'rgba(124, 58, 237, 0.7)'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Top 5 Bệnh nhân có nhiều đơn thuốc nhất' }
+      },
+      scales: {
+        y: { beginAtZero: true, precision: 0 }
       }
-    });
+    }
+  });
+
+  // Biểu đồ số đơn theo thuốc
+  const ctxMedication = document.getElementById('chartByMedication').getContext('2d');
+  new Chart(ctxMedication, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(medCountByName),
+      datasets: [{
+        label: 'Số đơn thuốc',
+        data: Object.values(medCountByName),
+        backgroundColor: 'rgba(99, 102, 241, 0.7)'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Top 5 Thuốc được kê nhiều nhất' }
+      },
+      scales: {
+        y: { beginAtZero: true, precision: 0 }
+      }
+    }
+  });
+
+  // Biểu đồ trạng thái đơn thuốc
+  const ctxStatus = document.getElementById('chartByStatus').getContext('2d');
+  new Chart(ctxStatus, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(medCountByStatus),
+      datasets: [{
+        label: 'Số đơn',
+        data: Object.values(medCountByStatus),
+        backgroundColor: [
+          'rgba(16, 185, 129, 0.7)',   // xanh lá
+          'rgba(239, 68, 68, 0.7)'     // đỏ
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        title: { display: true, text: 'Tỉ lệ đơn thuốc còn và hết hiệu lực' }
+      }
+    }
   });
 </script>
 </body>

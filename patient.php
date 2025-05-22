@@ -62,6 +62,32 @@ if (!empty($patientIDs)) {
         $records[$rec['PatientID']][] = $rec;
     }
 }
+
+// --- XỬ LÝ DỮ LIỆU CHO CHARTS ---
+
+// Thống kê bệnh nhân theo giới tính
+$genderCount = ['Male' => 0, 'Female' => 0, 'Other' => 0];
+// Nhóm tuổi
+$ageGroups = ['<20' => 0, '20-39' => 0, '40-59' => 0, '60+' => 0];
+
+$today = new DateTime();
+
+foreach ($patientsArr as $patient) {
+    // Giới tính
+    $g = trim($patient['Gender']);
+    if (!in_array($g, ['Male', 'Female'])) $g = 'Other';
+    $genderCount[$g] = ($genderCount[$g] ?? 0) + 1;
+
+    // Tính tuổi
+    $dob = DateTime::createFromFormat('d/m/Y', $patient['DOB']);
+    if ($dob) {
+        $age = $today->diff($dob)->y;
+        if ($age < 20) $ageGroups['<20']++;
+        elseif ($age < 40) $ageGroups['20-39']++;
+        elseif ($age < 60) $ageGroups['40-59']++;
+        else $ageGroups['60+']++;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -75,6 +101,7 @@ if (!empty($patientIDs)) {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
@@ -84,7 +111,7 @@ if (!empty($patientIDs)) {
       width: 240px;
       background: #c5dcff;
       min-height: 100vh;
-      color:rgb(248, 246, 246);
+      color: rgb(248, 246, 246);
       padding: 1rem;
       font-weight: 600;
     }
@@ -159,6 +186,19 @@ if (!empty($patientIDs)) {
       font-size: 0.85rem;
       padding: 3px 8px;
     }
+    hr {
+      border-color: #ddd;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+    /* Canvas chart chiều cao chuẩn */
+    canvas {
+      max-width: 100% !important;
+      height: 250px !important;
+    }
+    .row.mb-4 > div {
+      padding: 0 0.75rem;
+    }
   </style>
 </head>
 <body>
@@ -185,6 +225,19 @@ if (!empty($patientIDs)) {
     </div>
 
     <div class="content-container">
+
+      <h5 class="mb-4">Báo cáo thống kê</h5>
+      <div class="row mb-4">
+        <div class="col-lg-6 col-md-6 mb-3">
+          <canvas id="chartGender"></canvas>
+        </div>
+        <div class="col-lg-6 col-md-6 mb-3">
+          <canvas id="chartAgeGroup"></canvas>
+        </div>
+      </div>
+
+      <hr />
+
       <table id="patientsTable" class="table table-striped" style="width:100%">
         <thead>
           <tr>
@@ -266,7 +319,6 @@ $(document).ready(function() {
     }
   });
 
-  // Hàm escape để tránh lỗi XSS khi đưa dữ liệu vào html qua JS
   function htmlspecialchars(text) {
     return text
       .replace(/&/g, '&amp;')
@@ -275,6 +327,64 @@ $(document).ready(function() {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+
+  // Dữ liệu chart từ PHP
+  const genderData = <?= json_encode($genderCount) ?>;
+  const ageGroupData = <?= json_encode($ageGroups) ?>;
+
+  // Biến đổi thành arrays
+  const genderLabels = Object.keys(genderData);
+  const genderValues = Object.values(genderData);
+
+  const ageLabels = Object.keys(ageGroupData);
+  const ageValues = Object.values(ageGroupData);
+
+  // Chart Gender
+  new Chart(document.getElementById('chartGender'), {
+    type: 'doughnut',
+    data: {
+      labels: genderLabels,
+      datasets: [{
+        label: 'Số bệnh nhân theo giới tính',
+        data: genderValues,
+        backgroundColor: ['#4e79a7', '#f28e2b', '#e15759'],
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        title: { display: true, text: 'Phân bố bệnh nhân theo giới tính' }
+      }
+    }
+  });
+
+  // Chart Age Group
+  new Chart(document.getElementById('chartAgeGroup'), {
+    type: 'bar',
+    data: {
+      labels: ageLabels,
+      datasets: [{
+        label: 'Số bệnh nhân',
+        data: ageValues,
+        backgroundColor: '#59a14f',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Phân bố bệnh nhân theo nhóm tuổi' }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          precision: 0
+        }
+      }
+    }
+  });
+
 });
 </script>
 
