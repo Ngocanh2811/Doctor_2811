@@ -2,12 +2,12 @@
 session_start();
 require_once __DIR__ . '/db_config.php';
 
-// Xác định email từ GET (email hoặc username)
+// Determine email from GET (email or username)
 $email = '';
 if (!empty($_GET['email'])) {
     $email = trim($_GET['email']);
 } elseif (!empty($_GET['username'])) {
-    // Nếu truyền username, lấy email từ bảng user
+    // If username provided, get email from user table
     $stmt0 = $conn->prepare("SELECT Email FROM `user` WHERE Username = ?");
     $stmt0->bind_param("s", $_GET['username']);
     $stmt0->execute();
@@ -16,18 +16,18 @@ if (!empty($_GET['email'])) {
     $stmt0->close();
 }
 
-// Lấy thông báo thành công hoặc lỗi
+// Get success or error messages
 $success = $_SESSION['message'] ?? '';
 $error   = $_SESSION['error']   ?? '';
 unset($_SESSION['message'], $_SESSION['error']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // POST luôn có email field
+    // POST always has email field
     $email    = trim($_POST['email']);
     $otp      = trim($_POST['otp']);
     $new_pass = trim($_POST['password']);
 
-    // 1) Xác minh OTP và thời hạn (10 phút)
+    // 1) Verify OTP and expiration (10 minutes)
     $stmt = $conn->prepare(
       "SELECT created_at
          FROM password_resets
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($stmt->fetch() && (time() - strtotime($created_at) <= 600)) {
         $stmt->close();
 
-        // 2) Cập nhật mật khẩu (nên hash thật sự nếu bcrypt)
+        // 2) Update password (should hash securely like bcrypt)
         $upd = $conn->prepare(
           "UPDATE `user`
              SET PasswordHash = ?
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $upd->execute();
         $upd->close();
 
-        // 3) Xóa OTP đã dùng
+        // 3) Delete used OTP
         $del = $conn->prepare(
           "DELETE FROM password_resets WHERE email = ?"
         );
@@ -58,13 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $del->execute();
         $del->close();
 
-        $_SESSION['message'] = "✅ Mật khẩu đã được thiết lập lại. Bạn có thể đăng nhập ngay.";
+        $_SESSION['message'] = "✅ Your password has been reset. You can log in now.";
         header('Location: logindoctor.php');
         exit;
     } else {
-        $_SESSION['error'] = "❌ OTP không hợp lệ hoặc đã hết hạn.";
+        $_SESSION['error'] = "❌ Invalid or expired OTP.";
         $stmt->close();
-        // Chuyển hướng giữ GET param email hoặc username
+        // Redirect keeping GET param email or username
         if (!empty($_GET['email'])) {
             header('Location: reset_password.php?email=' . urlencode($email));
         } else {

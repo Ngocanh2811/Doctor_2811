@@ -10,32 +10,32 @@ $dotenv->load();
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// Hiển thị lỗi nếu có
+// Show error if any
 $error = $_SESSION['error'] ?? '';
 unset($_SESSION['error']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
 
-    // 1) Lấy email từ bảng user
+    // 1) Get email from user table
     $stmt = $conn->prepare("SELECT Email FROM `user` WHERE Username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $stmt->bind_result($email);
     if (!$stmt->fetch()) {
-        $_SESSION['error'] = "Tài khoản không tồn tại.";
+        $_SESSION['error'] = "Account does not exist.";
         header('Location: forgot_password.php');
         exit;
     }
     $stmt->close();
 
-    // 2) Xóa OTP cũ (nếu có) để tránh chèn trùng
+    // 2) Delete old OTP (if any) to avoid duplicates
     $del = $conn->prepare("DELETE FROM password_resets WHERE email = ?");
     $del->bind_param("s", $email);
     $del->execute();
     $del->close();
 
-    // 3) Tạo OTP và lưu vào password_resets
+    // 3) Generate OTP and save to password_resets
     $otp        = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $created_at = date('Y-m-d H:i:s');
 
@@ -47,14 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ins->execute();
     $ins->close();
 
-    // 4) Gửi email OTP
+    // 4) Send OTP email
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
         $mail->Host       = getenv('SMTP_HOST');
         $mail->SMTPAuth   = true;
         $mail->Username   = getenv('SMTP_USERNAME');
-$mail->Password   = getenv('SMTP_PASSWORD');
+        $mail->Password   = getenv('SMTP_PASSWORD');
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = getenv('SMTP_PORT');
 
@@ -62,11 +62,11 @@ $mail->Password   = getenv('SMTP_PASSWORD');
         $mail->addAddress($email);
 
         $mail->isHTML(true);
-        $mail->Subject = 'Mã OTP lấy lại mật khẩu';
+        $mail->Subject = 'Password Reset OTP';
         $mail->Body    = sprintf(
-          "<p>Xin chào <strong>%s</strong>,</p>\n" .
-          "<p>Mã OTP của bạn là: <strong>%s</strong></p>\n" .
-          "<p>Mã này sẽ hết hạn sau 10 phút.</p>",
+          "<p>Hello <strong>%s</strong>,</p>\n" .
+          "<p>Your OTP code is: <strong>%s</strong></p>\n" .
+          "<p>This code will expire in 10 minutes.</p>",
           htmlspecialchars($username),
           htmlspecialchars($otp)
         );
@@ -75,14 +75,14 @@ $mail->Password   = getenv('SMTP_PASSWORD');
         header('Location: reset_password.php?email=' . urlencode($email));
         exit;
     } catch (Exception $e) {
-        $_SESSION['error'] = "Không gửi được email: {$mail->ErrorInfo}";
+        $_SESSION['error'] = "Could not send email: {$mail->ErrorInfo}";
         header('Location: forgot_password.php');
         exit;
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -8,7 +8,7 @@ require_once __DIR__ . '/db_config.php';
 
 $doctorId = $_SESSION['linked_id'] ?? 0;
 
-// 1) Lấy danh sách bệnh nhân có cuộc hẹn với bác sĩ
+// 1) Get list of patients who have appointments with the doctor
 $sql = <<<SQL
 SELECT
     p.PatientID,
@@ -39,7 +39,7 @@ while ($row = $patients->fetch_assoc()) {
     $patientIDs[] = $row['PatientID'];
 }
 
-// 2) Lấy medical_record cho các bệnh nhân
+// 2) Get medical records for patients
 $records = [];
 if (!empty($patientIDs)) {
     $placeholders = implode(',', array_fill(0, count($patientIDs), '?'));
@@ -63,22 +63,22 @@ if (!empty($patientIDs)) {
     }
 }
 
-// --- XỬ LÝ DỮ LIỆU CHO CHARTS ---
+// --- PROCESS DATA FOR CHARTS ---
 
-// Thống kê bệnh nhân theo giới tính
+// Count patients by gender
 $genderCount = ['Male' => 0, 'Female' => 0, 'Other' => 0];
-// Nhóm tuổi
+// Age groups
 $ageGroups = ['<20' => 0, '20-39' => 0, '40-59' => 0, '60+' => 0];
 
 $today = new DateTime();
 
 foreach ($patientsArr as $patient) {
-    // Giới tính
+    // Gender
     $g = trim($patient['Gender']);
     if (!in_array($g, ['Male', 'Female'])) $g = 'Other';
     $genderCount[$g] = ($genderCount[$g] ?? 0) + 1;
 
-    // Tính tuổi
+    // Calculate age
     $dob = DateTime::createFromFormat('d/m/Y', $patient['DOB']);
     if ($dob) {
         $age = $today->diff($dob)->y;
@@ -91,11 +91,11 @@ foreach ($patientsArr as $patient) {
 ?>
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bệnh nhân của tôi</title>
+  <title>My Patients</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -148,11 +148,11 @@ foreach ($patientsArr as $patient) {
     table.dataTable thead {
       background: #f8f9fa;
     }
-    /* Style bảng bệnh nhân */
+    /* Patient table style */
     #patientsTable tbody tr:hover {
       background-color: #e6f0ff;
     }
-    /* Style chi tiết medical record */
+    /* Medical record details style */
     .record-details {
       margin-top: 10px;
       padding: 12px 20px;
@@ -191,7 +191,7 @@ foreach ($patientsArr as $patient) {
       margin-top: 2rem;
       margin-bottom: 2rem;
     }
-    /* Canvas chart chiều cao chuẩn */
+    /* Canvas chart standard height */
     canvas {
       max-width: 100% !important;
       height: 250px !important;
@@ -206,27 +206,27 @@ foreach ($patientsArr as $patient) {
   <nav class="sidebar d-flex flex-column">
     <h3 class="mb-4">Doctor Portal</h3>
     <ul class="nav nav-pills flex-column">
-      <li class="nav-item"><a href="dashboard.php" class="nav-link">Tổng quan</a></li>
-      <li class="nav-item"><a href="patient.php" class="nav-link active">Bệnh nhân</a></li>
-      <li class="nav-item"><a href="prescriptions.php" class="nav-link">Đơn thuốc</a></li>
-      <li class="nav-item"><a href="appointments.php" class="nav-link">Cuộc hẹn</a></li>
-      <li class="nav-item"><a href="question.php" class="nav-link">Phản hồi thắc mắc</a></li>
-      <li class="nav-item"><a href="settings.php" class="nav-link">Cài đặt</a></li>
+      <li class="nav-item"><a href="dashboard.php" class="nav-link">Overview</a></li>
+      <li class="nav-item"><a href="patient.php" class="nav-link active">Patients</a></li>
+      <li class="nav-item"><a href="prescriptions.php" class="nav-link">Prescriptions</a></li>
+      <li class="nav-item"><a href="appointments.php" class="nav-link">Appointments</a></li>
+      <li class="nav-item"><a href="question.php" class="nav-link">Feedback & Questions</a></li>
+      <li class="nav-item"><a href="settings.php" class="nav-link">Settings</a></li>
     </ul>
     <div class="mt-auto">
-      <a href="logout.php" class="btn btn-outline-primary w-100">Đăng xuất</a>
+      <a href="logout.php" class="btn btn-outline-primary w-100">Logout</a>
     </div>
   </nav>
 
   <div class="flex-grow-1 p-4">
     <div class="topbar">
-      <h4>Bệnh nhân của tôi</h4>
+      <h4>My Patients</h4>
       <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>
     </div>
 
     <div class="content-container">
 
-      <h5 class="mb-4">Báo cáo thống kê</h5>
+      <h5 class="mb-4">Statistical Report</h5>
       <div class="row mb-4">
         <div class="col-lg-6 col-md-6 mb-3">
           <canvas id="chartGender"></canvas>
@@ -242,12 +242,12 @@ foreach ($patientsArr as $patient) {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Họ & Tên</th>
-            <th>Giới tính</th>
-            <th>Ngày sinh</th>
-            <th>Điện thoại</th>
-            <th>Ngày hẹn tiếp theo</th>
-            <th>Chi tiết</th>
+            <th>Full Name</th>
+            <th>Gender</th>
+            <th>Date of Birth</th>
+            <th>Phone</th>
+            <th>Next Appointment Date</th>
+            <th>Details</th>
           </tr>
         </thead>
         <tbody>
@@ -259,7 +259,7 @@ foreach ($patientsArr as $patient) {
             <td><?= htmlspecialchars($row['DOB']) ?></td>
             <td><?= htmlspecialchars($row['PhoneNumber']) ?></td>
             <td><?= htmlspecialchars($row['NextApptDate'] ?? '-') ?></td>
-            <td><button class="btn btn-sm btn-outline-primary btn-record-toggle" data-patientid="<?= $row['PatientID'] ?>">Xem lịch sử khám</button></td>
+            <td><button class="btn btn-sm btn-outline-primary btn-record-toggle" data-patientid="<?= $row['PatientID'] ?>">View Medical History</button></td>
           </tr>
           <?php endforeach; ?>
         </tbody>
@@ -274,8 +274,8 @@ $(document).ready(function() {
     pageLength: 10,
     lengthMenu: [5, 10, 25],
     language: {
-      search: "Tìm kiếm:",
-      lengthMenu: "Hiển thị _MENU_ bản ghi"
+      search: "Search:",
+      lengthMenu: "Show _MENU_ records"
     }
   });
 
@@ -289,18 +289,18 @@ $(document).ready(function() {
     if (row.child.isShown()) {
       row.child.hide();
       tr.removeClass('shown');
-      $(this).text('Xem lịch sử khám');
+      $(this).text('View Medical History');
     } else {
       var records = recordsData[patientId] || [];
       var html = '';
 
       if (records.length === 0) {
-        html = '<div class="record-details"><em>Chưa có lịch sử khám.</em></div>';
+        html = '<div class="record-details"><em>No medical history available.</em></div>';
       } else {
         html = '<div class="record-details">';
-        html += '<h6>Lịch sử khám bệnh</h6>';
+        html += '<h6>Medical History</h6>';
         html += '<table class="record-table">';
-        html += '<thead><tr><th>Chẩn đoán</th><th>Điều trị</th><th>Phân loại</th></tr></thead><tbody>';
+        html += '<thead><tr><th>Diagnosis</th><th>Treatment</th><th>Classification</th></tr></thead><tbody>';
 
         records.forEach(function(rec) {
           html += '<tr>' +
@@ -315,7 +315,7 @@ $(document).ready(function() {
 
       row.child(html).show();
       tr.addClass('shown');
-      $(this).text('Ẩn lịch sử khám');
+      $(this).text('Hide Medical History');
     }
   });
 
@@ -328,11 +328,11 @@ $(document).ready(function() {
       .replace(/'/g, '&#039;');
   }
 
-  // Dữ liệu chart từ PHP
+  // Chart data from PHP
   const genderData = <?= json_encode($genderCount) ?>;
   const ageGroupData = <?= json_encode($ageGroups) ?>;
 
-  // Biến đổi thành arrays
+  // Convert to arrays
   const genderLabels = Object.keys(genderData);
   const genderValues = Object.values(genderData);
 
@@ -345,7 +345,7 @@ $(document).ready(function() {
     data: {
       labels: genderLabels,
       datasets: [{
-        label: 'Số bệnh nhân theo giới tính',
+        label: 'Number of Patients by Gender',
         data: genderValues,
         backgroundColor: ['#4e79a7', '#f28e2b', '#e15759'],
       }]
@@ -354,7 +354,7 @@ $(document).ready(function() {
       responsive: true,
       plugins: {
         legend: { position: 'bottom' },
-        title: { display: true, text: 'Phân bố bệnh nhân theo giới tính' }
+        title: { display: true, text: 'Patient Distribution by Gender' }
       }
     }
   });
@@ -365,7 +365,7 @@ $(document).ready(function() {
     data: {
       labels: ageLabels,
       datasets: [{
-        label: 'Số bệnh nhân',
+        label: 'Number of Patients',
         data: ageValues,
         backgroundColor: '#59a14f',
       }]
@@ -374,7 +374,7 @@ $(document).ready(function() {
       responsive: true,
       plugins: {
         legend: { display: false },
-        title: { display: true, text: 'Phân bố bệnh nhân theo nhóm tuổi' }
+        title: { display: true, text: 'Patient Distribution by Age Group' }
       },
       scales: {
         y: {

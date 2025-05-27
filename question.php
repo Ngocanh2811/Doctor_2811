@@ -34,11 +34,11 @@ $nstmt->execute();
 $newCount  = (int)$nstmt->get_result()->fetch_assoc()['cnt'];
 ?>
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Doctor Portal – Phản hồi thắc mắc</title>
+  <title>Doctor Portal – Patient Questions</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
   <style>
@@ -80,22 +80,22 @@ $newCount  = (int)$nstmt->get_result()->fetch_assoc()['cnt'];
   <nav class="sidebar">
     <h3 class="text-white mb-4">Doctor Portal</h3>
     <ul class="nav nav-pills flex-column">
-      <li class="nav-item"><a href="dashboard.php" class="nav-link">Tổng quan</a></li>
-      <li class="nav-item"><a href="patient.php"   class="nav-link">Bệnh nhân</a></li>
-      <li class="nav-item"><a href="prescriptions.php" class="nav-link">Đơn thuốc</a></li>
-      <li class="nav-item"><a href="appointments.php"  class="nav-link">Cuộc hẹn</a></li>
+      <li class="nav-item"><a href="dashboard.php" class="nav-link">Overview</a></li>
+      <li class="nav-item"><a href="patient.php"   class="nav-link">Patients</a></li>
+      <li class="nav-item"><a href="prescriptions.php" class="nav-link">Prescriptions</a></li>
+      <li class="nav-item"><a href="appointments.php"  class="nav-link">Appointments</a></li>
       <li class="nav-item">
         <a href="question.php" class="nav-link active">
-          Phản hồi thắc mắc
+          Feedback & Questions
           <?php if($newCount): ?>
             <span class="badge-new ms-1"><?= $newCount ?></span>
           <?php endif; ?>
         </a>
       </li>
-      <li class="nav-item"><a href="settings.php" class="nav-link">Cài đặt</a></li>
+      <li class="nav-item"><a href="settings.php" class="nav-link">Settings</a></li>
     </ul>
     <div class="mt-auto">
-      <a href="logout.php" class="btn btn-outline-light w-100 mt-3">Đăng xuất</a>
+      <a href="logout.php" class="btn btn-outline-light w-100 mt-3">Logout</a>
     </div>
   </nav>
 
@@ -105,7 +105,7 @@ $newCount  = (int)$nstmt->get_result()->fetch_assoc()['cnt'];
     <div class="container-fluid mt-3 mb-4">
       <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center py-3">
-          <h5 class="mb-0">Phản hồi thắc mắc</h5>
+          <h5 class="mb-0">Patient Questions</h5>
           <span class="fw-bold"><?= htmlspecialchars($_SESSION['username']) ?></span>
         </div>
       </div>
@@ -116,11 +116,11 @@ $newCount  = (int)$nstmt->get_result()->fetch_assoc()['cnt'];
         <table id="qTable" class="table table-striped">
           <thead>
             <tr>
-              <th>Bệnh nhân</th>
-              <th>Câu hỏi</th>
-              <th>Ngày giờ</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
+              <th>Patient</th>
+              <th>Question</th>
+              <th>Date & Time</th>
+              <th>Status</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -134,14 +134,14 @@ $newCount  = (int)$nstmt->get_result()->fetch_assoc()['cnt'];
               <td><?= $row['QuestionDate'] ?></td>
               <td>
                 <?php if($row['IsAnswered']): ?>
-                  <span class="badge bg-success">Đã trả lời</span>
+                  <span class="badge bg-success">Answered</span>
                 <?php else: ?>
-                  <span class="badge bg-warning">Chưa trả lời</span>
+                  <span class="badge bg-warning">Unanswered</span>
                 <?php endif; ?>
               </td>
               <td>
                 <button class="btn btn-sm btn-primary btn-reply" data-bs-toggle="modal" data-bs-target="#replyModal">
-                  Trả lời
+                  Reply
                 </button>
               </td>
             </tr>
@@ -153,29 +153,29 @@ $newCount  = (int)$nstmt->get_result()->fetch_assoc()['cnt'];
   </div>
 </div>
 
-<!-- Modal Gửi trả lời -->
+<!-- Reply Modal -->
 <div class="modal fade" id="replyModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <form method="post" action="answer_question.php">
         <div class="modal-header">
-          <h5 class="modal-title">Trả lời thắc mắc</h5>
+          <h5 class="modal-title">Reply to Question</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <input type="hidden" name="question_id" id="replyQuestionId">
           <div class="mb-3">
-            <label class="form-label">Câu hỏi</label>
+            <label class="form-label">Question</label>
             <textarea class="form-control" id="displayQuestion" rows="3" disabled></textarea>
           </div>
           <div class="mb-3">
-            <label class="form-label">Trả lời</label>
+            <label class="form-label">Answer</label>
             <textarea name="answer" class="form-control" id="replyAnswer" rows="3" required></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-          <button type="submit" class="btn btn-primary">Gửi</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Send</button>
         </div>
       </form>
     </div>

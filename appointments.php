@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
 require_once __DIR__ . '/db_config.php';
 $doctorId = $_SESSION['linked_id'];
 
-// Xử lý form actions
+// Handle form actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'create') {
@@ -67,12 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// Lấy danh sách bệnh nhân
+// Get patient list
 $patients = $conn
     ->query("SELECT PatientID, CONCAT(FirstName,' ',LastName) AS Name FROM patient ORDER BY LastName, FirstName")
     ->fetch_all(MYSQLI_ASSOC);
 
-// Lấy danh sách cuộc hẹn
+// Get appointment list
 $stmt = $conn->prepare("
     SELECT a.AppointmentID, a.PatientID,
            CONCAT(p.FirstName,' ',p.LastName) AS PatientName,
@@ -86,25 +86,25 @@ $stmt->bind_param('i', $doctorId);
 $stmt->execute();
 $appointments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// --- Thống kê dữ liệu cho chart ---
+// --- Data statistics for charts ---
 $apptCountByStatus = ['pending' => 0, 'confirmed' => 0, 'cancelled' => 0];
 $apptCountByDate = [];
 $apptStatusByDate = [];
 
 foreach ($appointments as $appt) {
-    // Đếm theo trạng thái tổng
+    // Count total by status
     if (isset($apptCountByStatus[$appt['Status']])) {
         $apptCountByStatus[$appt['Status']]++;
     }
 
-    // Đếm số cuộc hẹn theo ngày
+    // Count appointments by date
     $date = $appt['AppointmentDate'];
     if (!isset($apptCountByDate[$date])) {
         $apptCountByDate[$date] = 0;
     }
     $apptCountByDate[$date]++;
 
-    // Đếm trạng thái theo ngày
+    // Count status by date
     if (!isset($apptStatusByDate[$date])) {
         $apptStatusByDate[$date] = ['pending'=>0, 'confirmed'=>0, 'cancelled'=>0];
     }
@@ -117,11 +117,11 @@ ksort($apptCountByDate);
 ksort($apptStatusByDate);
 ?>
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Doctor Portal – Danh sách cuộc hẹn</title>
+  <title>Doctor Portal – Appointment List</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
   <style>
@@ -161,15 +161,15 @@ ksort($apptStatusByDate);
   <nav class="sidebar">
     <h3 class="text-white">Doctor Portal</h3>
     <ul class="nav nav-pills flex-column mt-3">
-      <li class="nav-item"><a href="dashboard.php" class="nav-link">Tổng quan</a></li>
-      <li class="nav-item"><a href="patient.php" class="nav-link">Bệnh nhân</a></li>
-      <li class="nav-item"><a href="prescriptions.php" class="nav-link">Đơn thuốc</a></li>
-      <li class="nav-item"><a href="appointments.php" class="nav-link active">Cuộc hẹn</a></li>
-      <li class="nav-item"><a href="question.php" class="nav-link">Phản hồi thắc mắc</a></li>
-      <li class="nav-item"><a href="settings.php" class="nav-link">Cài đặt</a></li>
+      <li class="nav-item"><a href="dashboard.php" class="nav-link">Overview</a></li>
+      <li class="nav-item"><a href="patient.php" class="nav-link">Patients</a></li>
+      <li class="nav-item"><a href="prescriptions.php" class="nav-link">Prescriptions</a></li>
+      <li class="nav-item"><a href="appointments.php" class="nav-link active">Appointments</a></li>
+      <li class="nav-item"><a href="question.php" class="nav-link">Feedback & Questions</a></li>
+      <li class="nav-item"><a href="settings.php" class="nav-link">Settings</a></li>
     </ul>
     <div class="mt-auto">
-      <a href="logout.php" class="btn btn-outline-light w-100 mt-3">Đăng xuất</a>
+      <a href="logout.php" class="btn btn-outline-light w-100 mt-3">Logout</a>
     </div>
   </nav>
 
@@ -177,9 +177,9 @@ ksort($apptStatusByDate);
     <div class="container-fluid mt-3 mb-4">
       <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center py-3">
-          <h5 class="mb-0">Danh sách cuộc hẹn</h5>
+          <h5 class="mb-0">Appointment List</h5>
           <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createModal">
-            Tạo mới
+            Create New
           </button>
         </div>
       </div>
@@ -206,12 +206,12 @@ ksort($apptStatusByDate);
         <table id="apptTable" class="table table-striped">
           <thead>
             <tr>
-              <th>Bệnh nhân</th>
-              <th>Ngày</th>
-              <th>Giờ</th>
-              <th>Lý do</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
+              <th>Patient</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -232,7 +232,7 @@ ksort($apptStatusByDate);
                   <input type="hidden" name="appt_id" value="<?= $r['AppointmentID'] ?>">
                   <select name="status" class="form-select form-select-sm d-inline-block w-auto"
                           onchange="this.form.submit()">
-                    <?php foreach(['pending'=>'Chưa đến','confirmed'=>'Đã đến','cancelled'=>'Hủy'] as $k=>$v): ?>
+                    <?php foreach(['pending'=>'Pending','confirmed'=>'Confirmed','cancelled'=>'Cancelled'] as $k=>$v): ?>
                       <option value="<?= $k ?>" <?= $r['Status']==$k?'selected':'' ?>>
                         <?= $v ?>
                       </option>
@@ -241,8 +241,8 @@ ksort($apptStatusByDate);
                 </form>
               </td>
               <td>
-                <button class="btn btn-sm btn-primary btn-edit" data-bs-toggle="modal" data-bs-target="#editModal">Sửa</button>
-                <button class="btn btn-sm btn-danger btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal">Xóa</button>
+                <button class="btn btn-sm btn-primary btn-edit" data-bs-toggle="modal" data-bs-target="#editModal">Edit</button>
+                <button class="btn btn-sm btn-danger btn-delete" data-bs-toggle="modal" data-bs-target="#deleteModal">Delete</button>
               </td>
             </tr>
             <?php endforeach; ?>
@@ -256,13 +256,13 @@ ksort($apptStatusByDate);
 <div class="modal fade" id="createModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <form method="post">
     <div class="modal-header">
-      <h5 class="modal-title">Tạo cuộc hẹn</h5>
+      <h5 class="modal-title">Create Appointment</h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" name="action" value="create">
       <div class="mb-3">
-        <label class="form-label">Bệnh nhân</label>
+        <label class="form-label">Patient</label>
         <select name="patient_id" class="form-select">
           <?php foreach($patients as $p): ?>
             <option value="<?= $p['PatientID'] ?>"><?= htmlspecialchars($p['Name']) ?></option>
@@ -271,30 +271,30 @@ ksort($apptStatusByDate);
       </div>
       <div class="row mb-3">
         <div class="col">
-          <label class="form-label">Ngày</label>
+          <label class="form-label">Date</label>
           <input type="date" name="date" class="form-control" required>
         </div>
         <div class="col">
-          <label class="form-label">Giờ</label>
+          <label class="form-label">Time</label>
           <input type="time" name="time" class="form-control" required>
         </div>
       </div>
       <div class="mb-3">
-        <label class="form-label">Lý do</label>
+        <label class="form-label">Reason</label>
         <textarea name="reason" class="form-control" rows="2"></textarea>
       </div>
       <div class="mb-3">
-        <label class="form-label">Trạng thái</label>
+        <label class="form-label">Status</label>
         <select name="status" class="form-select">
-          <option value="pending">Chưa đến</option>
-          <option value="confirmed">Đã đến</option>
-          <option value="cancelled">Hủy</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
         </select>
       </div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-      <button type="submit" class="btn btn-primary">Lưu</button>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="btn btn-primary">Save</button>
     </div>
   </form>
 </div></div></div>
@@ -302,14 +302,14 @@ ksort($apptStatusByDate);
 <div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <form method="post">
     <div class="modal-header">
-      <h5 class="modal-title">Sửa cuộc hẹn</h5>
+      <h5 class="modal-title">Edit Appointment</h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" name="action" value="edit">
       <input type="hidden" name="appt_id" id="editApptId">
       <div class="mb-3">
-        <label class="form-label">Bệnh nhân</label>
+        <label class="form-label">Patient</label>
         <select name="patient_id" id="editPatientId" class="form-select">
           <?php foreach($patients as $p): ?>
             <option value="<?= $p['PatientID'] ?>"><?= htmlspecialchars($p['Name']) ?></option>
@@ -318,30 +318,30 @@ ksort($apptStatusByDate);
       </div>
       <div class="row mb-3">
         <div class="col">
-          <label class="form-label">Ngày</label>
+          <label class="form-label">Date</label>
           <input type="date" name="date" id="editDate" class="form-control">
         </div>
         <div class="col">
-          <label class="form-label">Giờ</label>
+          <label class="form-label">Time</label>
           <input type="time" name="time" id="editTime" class="form-control">
         </div>
       </div>
       <div class="mb-3">
-        <label class="form-label">Lý do</label>
+        <label class="form-label">Reason</label>
         <textarea name="reason" id="editReason" class="form-control" rows="2"></textarea>
       </div>
       <div class="mb-3">
-        <label class="form-label">Trạng thái</label>
+        <label class="form-label">Status</label>
         <select name="status" id="editStatus" class="form-select">
-          <option value="pending">Chưa đến</option>
-          <option value="confirmed">Đã đến</option>
-          <option value="cancelled">Hủy</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
         </select>
       </div>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-      <button type="submit" class="btn btn-primary">Cập nhật</button>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="submit" class="btn btn-primary">Update</button>
     </div>
   </form>
 </div></div></div>
@@ -349,17 +349,17 @@ ksort($apptStatusByDate);
 <div class="modal fade" id="deleteModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
   <form method="post">
     <div class="modal-header">
-      <h5 class="modal-title text-danger">Xóa cuộc hẹn</h5>
+      <h5 class="modal-title text-danger">Delete Appointment</h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" name="action" value="delete">
       <input type="hidden" name="appt_id" id="delApptId">
-      <p>Bạn có chắc muốn xóa cuộc hẹn này?</p>
+      <p>Are you sure you want to delete this appointment?</p>
     </div>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Không</button>
-      <button type="submit" class="btn btn-danger">Xóa</button>
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+      <button type="submit" class="btn btn-danger">Delete</button>
     </div>
   </form>
 </div></div></div>
@@ -387,7 +387,7 @@ ksort($apptStatusByDate);
     });
   });
 
-  // Biểu đồ Pie - Số cuộc hẹn theo trạng thái
+  // Pie chart - Appointments by status
   const apptCountByStatus = <?= json_encode($apptCountByStatus) ?>;
   const apptCountByDate = <?= json_encode($apptCountByDate) ?>;
   const apptStatusByDate = <?= json_encode($apptStatusByDate) ?>;
@@ -397,9 +397,9 @@ ksort($apptStatusByDate);
     type: 'pie',
     data: {
       labels: Object.keys(apptCountByStatus).map(s => {
-        if(s==='pending') return 'Chưa đến';
-        if(s==='confirmed') return 'Đã đến';
-        if(s==='cancelled') return 'Hủy';
+        if(s==='pending') return 'Pending';
+        if(s==='confirmed') return 'Confirmed';
+        if(s==='cancelled') return 'Cancelled';
         return s;
       }),
       datasets: [{
@@ -414,20 +414,20 @@ ksort($apptStatusByDate);
     options: {
       responsive: true,
       plugins: {
-        title: { display: true, text: 'Số cuộc hẹn theo trạng thái' },
+        title: { display: true, text: 'Appointments by Status' },
         legend: { position: 'bottom' }
       }
     }
   });
 
-  // Biểu đồ Bar - Số cuộc hẹn theo ngày
+  // Bar chart - Appointments by date
   const ctxDate = document.getElementById('chartApptByDate').getContext('2d');
   new Chart(ctxDate, {
     type: 'bar',
     data: {
       labels: Object.keys(apptCountByDate),
       datasets: [{
-        label: 'Số cuộc hẹn',
+        label: 'Number of Appointments',
         data: Object.values(apptCountByDate),
         backgroundColor: 'rgba(59, 130, 246, 0.7)',
       }]
@@ -435,7 +435,7 @@ ksort($apptStatusByDate);
     options: {
       responsive: true,
       plugins: {
-        title: { display: true, text: 'Số cuộc hẹn theo ngày' }
+        title: { display: true, text: 'Appointments by Date' }
       },
       scales: {
         y: { beginAtZero: true, precision: 0 }
@@ -443,7 +443,7 @@ ksort($apptStatusByDate);
     }
   });
 
-  // Biểu đồ Stacked Bar - Tỉ lệ trạng thái theo ngày
+  // Stacked Bar chart - Status ratio by date
   const ctxStatusByDate = document.getElementById('chartApptStatusByDate').getContext('2d');
   const labelsDate = Object.keys(apptStatusByDate);
   const dataPending = labelsDate.map(d => apptStatusByDate[d]?.pending ?? 0);
@@ -456,17 +456,17 @@ ksort($apptStatusByDate);
       labels: labelsDate,
       datasets: [
         {
-          label: 'Chưa đến',
+          label: 'Pending',
           data: dataPending,
           backgroundColor: '#facc15',
         },
         {
-          label: 'Đã đến',
+          label: 'Confirmed',
           data: dataConfirmed,
           backgroundColor: '#22c55e',
         },
         {
-          label: 'Hủy',
+          label: 'Cancelled',
           data: dataCancelled,
           backgroundColor: '#ef4444',
         }
@@ -475,7 +475,7 @@ ksort($apptStatusByDate);
     options: {
       responsive: true,
       plugins: {
-        title: { display: true, text: 'Tỉ lệ trạng thái cuộc hẹn theo ngày' },
+        title: { display: true, text: 'Appointment Status Ratio by Date' },
         legend: { position: 'bottom' }
       },
       scales: {

@@ -15,13 +15,13 @@ $errorPass      = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($_POST['form_type']) && $_POST['form_type'] === 'profile') {
-        // Cập nhật thông tin cá nhân
+        // Update personal info
         $firstName = trim($_POST['first_name'] ?? '');
         $lastName  = trim($_POST['last_name']  ?? '');
         $email     = trim($_POST['email']      ?? '');
         $phone     = trim($_POST['phone']      ?? '');
 
-        // Xử lý upload ảnh đại diện
+        // Handle avatar upload
         $avatarFileName = null;
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
             $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Cập nhật database
+        // Update database
         if ($avatarFileName) {
             $stmt = $conn->prepare(
                 "UPDATE doctor
@@ -62,13 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($stmt->execute()) {
-            $successProfile = 'Cập nhật thông tin cá nhân thành công.';
+            $successProfile = 'Personal information updated successfully.';
         }
         $stmt->close();
     }
 
     if (!empty($_POST['form_type']) && $_POST['form_type'] === 'password') {
-        // Đổi mật khẩu
+        // Change password
         $oldPass     = $_POST['old_password']     ?? '';
         $newPass     = $_POST['new_password']     ?? '';
         $confirmPass = $_POST['confirm_password'] ?? '';
@@ -85,9 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pstmt->close();
 
         if ($oldPass !== $currentHash) {
-            $errorPass = 'Mật khẩu cũ không đúng.';
+            $errorPass = 'Old password is incorrect.';
         } elseif ($newPass !== $confirmPass) {
-            $errorPass = 'Mật khẩu mới và xác nhận không khớp.';
+            $errorPass = 'New password and confirmation do not match.';
         } else {
             $up = $conn->prepare(
                 "UPDATE user
@@ -96,14 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $up->bind_param('si', $newPass, $doctorId);
             if ($up->execute()) {
-                $successPass = 'Đổi mật khẩu thành công.';
+                $successPass = 'Password changed successfully.';
             }
             $up->close();
         }
     }
 }
 
-// Lấy thông tin profile
+// Get profile info
 $sql = <<<SQL
 SELECT u.Username,
        d.FirstName,
@@ -123,14 +123,12 @@ $profile = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 ?>
 
-
-
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Doctor Portal – Cài đặt</title>
+  <title>Doctor Portal – Settings</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
     body {
@@ -223,7 +221,7 @@ $stmt->close();
       flex-direction: column;
     }
 
-    /* Form Thông tin cá nhân */
+    /* Profile form */
     .card-profile form {
       display: flex;
       gap: 2rem;
@@ -267,11 +265,11 @@ $stmt->close();
       border-color: #357abd;
     }
 
-    /* Form Đổi mật khẩu */
+    /* Password change form */
     .card-password {
       max-width: 400px;
       width: 100%;
-      margin: 0 auto; /* căn giữa */
+      margin: 0 auto; /* center horizontally */
       padding-bottom: 1rem;
     }
 
@@ -284,7 +282,7 @@ $stmt->close();
       margin-top: 1rem;
     }
 
-    /* Responsive nhỏ hơn */
+    /* Responsive for smaller screens */
     @media (max-width: 576px) {
       .card-profile form {
         flex-direction: column;
@@ -305,15 +303,15 @@ $stmt->close();
     <nav class="sidebar">
       <h3>Doctor Portal</h3>
       <ul class="nav nav-pills flex-column">
-        <li class="nav-item"><a href="dashboard.php" class="nav-link">Tổng quan</a></li>
-        <li class="nav-item"><a href="patient.php" class="nav-link">Bệnh nhân</a></li>
-        <li class="nav-item"><a href="prescriptions.php" class="nav-link">Đơn thuốc</a></li>
-        <li class="nav-item"><a href="appointments.php" class="nav-link">Cuộc hẹn</a></li>
-        <li class="nav-item"><a href="question.php" class="nav-link">Phản hồi thắc mắc</a></li>
-        <li class="nav-item"><a href="settings.php" class="nav-link active">Cài đặt</a></li>
+        <li class="nav-item"><a href="dashboard.php" class="nav-link">Overview</a></li>
+        <li class="nav-item"><a href="patient.php" class="nav-link">Patients</a></li>
+        <li class="nav-item"><a href="prescriptions.php" class="nav-link">Prescriptions</a></li>
+        <li class="nav-item"><a href="appointments.php" class="nav-link">Appointments</a></li>
+        <li class="nav-item"><a href="question.php" class="nav-link">Patient Questions</a></li>
+        <li class="nav-item"><a href="settings.php" class="nav-link active">Settings</a></li>
       </ul>
       <div class="mt-auto">
-        <a href="logout.php" class="btn btn-outline-light w-100 mt-3">Đăng xuất</a>
+        <a href="logout.php" class="btn btn-outline-light w-100 mt-3">Logout</a>
       </div>
     </nav>
 
@@ -321,13 +319,13 @@ $stmt->close();
     <main class="main-content">
       <div class="header-card card">
         <div class="card-body">
-          <span>Cài đặt</span>
+          <span>Settings</span>
           <span><?= htmlspecialchars($_SESSION['username']) ?></span>
         </div>
       </div>
 
       <div class="content">
-        <!-- Form Thông tin cá nhân -->
+        <!-- Profile Information Form -->
         <section class="card-container card-profile">
           <?php
             $avatarPath = 'uploads/avatars/default-avatar.jpg';
@@ -338,15 +336,15 @@ $stmt->close();
           <form method="post" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="form_type" value="profile" />
             <div style="display:flex; gap:2rem; flex-wrap: wrap; align-items:flex-start;">
-              <img src="<?= htmlspecialchars($avatarPath) ?>" alt="Ảnh đại diện" class="avatar" />
+              <img src="<?= htmlspecialchars($avatarPath) ?>" alt="Avatar" class="avatar" />
               <div class="profile-fields">
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label" for="first_name">Họ</label>
+                    <label class="form-label" for="first_name">First Name</label>
                     <input id="first_name" name="first_name" type="text" class="form-control" value="<?= htmlspecialchars($profile['FirstName']) ?>" required />
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label" for="last_name">Tên</label>
+                    <label class="form-label" for="last_name">Last Name</label>
                     <input id="last_name" name="last_name" type="text" class="form-control" value="<?= htmlspecialchars($profile['LastName']) ?>" required />
                   </div>
                   <div class="col-12">
@@ -354,23 +352,23 @@ $stmt->close();
                     <input id="email" name="email" type="email" class="form-control" value="<?= htmlspecialchars($profile['Email']) ?>" required />
                   </div>
                   <div class="col-12">
-                    <label class="form-label" for="phone">Số điện thoại</label>
+                    <label class="form-label" for="phone">Phone Number</label>
                     <input id="phone" name="phone" type="text" class="form-control" value="<?= htmlspecialchars($profile['PhoneNumber']) ?>" />
                   </div>
                   <div class="col-12">
-                    <label class="form-label" for="avatar">Ảnh đại diện</label>
+                    <label class="form-label" for="avatar">Avatar</label>
                     <input id="avatar" name="avatar" type="file" class="form-control" accept="image/*" />
                   </div>
                 </div>
-                <button type="submit" class="btn btn-primary mt-4">Lưu thông tin</button>
+                <button type="submit" class="btn btn-primary mt-4">Save Information</button>
               </div>
             </div>
           </form>
         </section>
 
-        <!-- Form Đổi mật khẩu -->
+        <!-- Change Password Form -->
         <section class="card-container card-password">
-          <h5 class="mb-4 text-center" style="font-weight:700;">Đổi mật khẩu</h5>
+          <h5 class="mb-4 text-center" style="font-weight:700;">Change Password</h5>
 
           <?php if ($errorPass || $successPass): ?>
             <div class="alert <?= $errorPass ? 'alert-danger' : 'alert-success' ?>" role="alert">
@@ -381,18 +379,18 @@ $stmt->close();
           <form method="post" novalidate>
             <input type="hidden" name="form_type" value="password" />
             <div class="mb-3">
-              <label class="form-label" for="old_password">Mật khẩu cũ</label>
-              <input id="old_password" name="old_password" type="password" class="form-control" placeholder="Nhập mật khẩu cũ" required />
+              <label class="form-label" for="old_password">Old Password</label>
+              <input id="old_password" name="old_password" type="password" class="form-control" placeholder="Enter old password" required />
             </div>
             <div class="mb-3">
-              <label class="form-label" for="new_password">Mật khẩu mới</label>
-              <input id="new_password" name="new_password" type="password" class="form-control" placeholder="Nhập mật khẩu mới" required />
+              <label class="form-label" for="new_password">New Password</label>
+              <input id="new_password" name="new_password" type="password" class="form-control" placeholder="Enter new password" required />
             </div>
             <div class="mb-4">
-              <label class="form-label" for="confirm_password">Xác nhận mật khẩu</label>
-              <input id="confirm_password" name="confirm_password" type="password" class="form-control" placeholder="Nhập lại mật khẩu mới" required />
+              <label class="form-label" for="confirm_password">Confirm Password</label>
+              <input id="confirm_password" name="confirm_password" type="password" class="form-control" placeholder="Confirm new password" required />
             </div>
-            <button type="submit" class="btn btn-primary w-100">Đổi mật khẩu</button>
+            <button type="submit" class="btn btn-primary w-100">Change Password</button>
           </form>
         </section>
       </div>

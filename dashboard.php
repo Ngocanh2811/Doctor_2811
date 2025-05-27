@@ -4,38 +4,38 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
     header('Location: logindoctor.php');
     exit;
 }
-require_once __DIR__ . '/db_config.php';  // Kết nối DB
+require_once __DIR__ . '/db_config.php';  // DB connection
 $doctorId = $_SESSION['linked_id'];
 
-// 1) Tổng số bệnh nhân (dựa trên appointment)
+// 1) Total patients (based on appointment)
 $sqlPatients = "SELECT COUNT(DISTINCT PatientID) AS cnt FROM appointment WHERE DoctorID = ?";
 $stmt = $conn->prepare($sqlPatients);
 $stmt->bind_param('i', $doctorId);
 $stmt->execute();
 $totalPatients = (int)$stmt->get_result()->fetch_assoc()['cnt'];
 
-// 2) Đơn thuốc đang chờ xử lý
+// 2) Pending prescriptions
 $sqlPres = "SELECT COUNT(*) AS cnt FROM medication WHERE PrescribedByID = ?";
 $pstmt = $conn->prepare($sqlPres);
 $pstmt->bind_param('i', $doctorId);
 $pstmt->execute();
 $pendingPrescriptions = (int)$pstmt->get_result()->fetch_assoc()['cnt'];
 
-// 3) Cuộc hẹn sắp tới (AppointmentDate > hiện tại)
+// 3) Upcoming appointments (AppointmentDate > current date)
 $sqlAppts = "SELECT COUNT(*) AS cnt FROM appointment WHERE DoctorID = ? AND (AppointmentDate > CURDATE() OR (AppointmentDate = CURDATE() AND AppointmentTime >= CURTIME()))";
 $astmt = $conn->prepare($sqlAppts);
 $astmt->bind_param('i', $doctorId);
 $astmt->execute();
 $pendingAppointments = (int)$astmt->get_result()->fetch_assoc()['cnt'];
 
-// 4) Phản hồi bệnh nhân (question)
+// 4) Patient feedback (question)
 $sqlFb = "SELECT COUNT(*) AS cnt FROM question WHERE DoctorID = ?";
 $fstmt = $conn->prepare($sqlFb);
 $fstmt->bind_param('i', $doctorId);
 $fstmt->execute();
 $patientFeedbacks = (int)$fstmt->get_result()->fetch_assoc()['cnt'];
 
-// 5) Thống kê hẹn trong ngày theo khung giờ
+// 5) Appointment stats today by time slot
 $times = ['08:00','10:00','12:00','14:00','16:00'];
 $timeData = [];
 foreach ($times as $t) {
@@ -46,7 +46,7 @@ foreach ($times as $t) {
     $timeData[] = (int)$ts->get_result()->fetch_assoc()['cnt'];
 }
 
-// 6) Thống kê hẹn trong 7 ngày gần nhất
+// 6) Appointment stats for last 7 days
 $days = [];
 $dayData = [];
 for ($i = 6; $i >= 0; $i--) {
@@ -60,15 +60,15 @@ for ($i = 6; $i >= 0; $i--) {
 ?>
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Doctor Dashboard – Tổng quan</title>
+  <title>Doctor Dashboard – Overview</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Style giống mẫu bạn gửi */
+    /* Style like your original */
     body {
       background: #f3edf7;
     }
@@ -140,63 +140,63 @@ for ($i = 6; $i >= 0; $i--) {
   <nav class="sidebar d-flex flex-column">
     <h3 class="text-white mb-4">Doctor Portal</h3>
     <ul class="nav nav-pills flex-column">
-      <li class="nav-item"><a href="dashboard.php" class="nav-link active">Tổng quan</a></li>
-      <li class="nav-item"><a href="patient.php" class="nav-link">Bệnh nhân</a></li>
-      <li class="nav-item"><a href="prescriptions.php" class="nav-link">Đơn thuốc</a></li>
-      <li class="nav-item"><a href="appointments.php" class="nav-link">Cuộc hẹn</a></li>
-      <li class="nav-item"><a href="question.php" class="nav-link">Phản hồi thắc mắc</a></li>
-      <li class="nav-item"><a href="settings.php" class="nav-link">Cài đặt</a></li>
+      <li class="nav-item"><a href="dashboard.php" class="nav-link active">Overview</a></li>
+      <li class="nav-item"><a href="patient.php" class="nav-link">Patients</a></li>
+      <li class="nav-item"><a href="prescriptions.php" class="nav-link">Prescriptions</a></li>
+      <li class="nav-item"><a href="appointments.php" class="nav-link">Appointments</a></li>
+      <li class="nav-item"><a href="question.php" class="nav-link">Feedback & Questions</a></li>
+      <li class="nav-item"><a href="settings.php" class="nav-link">Settings</a></li>
     </ul>
     <div class="mt-auto">
-      <a href="logout.php" class="btn btn-outline-light w-100">Đăng xuất</a>
+      <a href="logout.php" class="btn btn-outline-light w-100">Logout</a>
     </div>
   </nav>
   <div class="flex-grow-1 p-4">
     <div class="topbar d-flex justify-content-between align-items-center">
-      <h4>Tổng quan</h4>
+      <h4>Overview</h4>
       <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>
     </div>
     <div class="container mt-4">
       <div class="row g-4 mb-5">
         <div class="col-md-3">
           <div class="card stat-card p-4 text-center bg-white">
-            <h6>Tổng bệnh nhân</h6>
+            <h6>Total Patients</h6>
             <h3 class="text-primary"><?= $totalPatients ?></h3>
-            <a href="patient.php" class="btn btn-outline-primary mt-3">Xem chi tiết</a>
+            <a href="patient.php" class="btn btn-outline-primary mt-3">View Details</a>
           </div>
         </div>
         <div class="col-md-3">
           <div class="card stat-card p-4 text-center bg-white">
-            <h6>Đơn thuốc</h6>
+            <h6>Prescriptions</h6>
             <h3 class="text-success"><?= $pendingPrescriptions ?></h3>
-            <a href="prescriptions.php" class="btn btn-outline-success mt-3">Xem chi tiết</a>
+            <a href="prescriptions.php" class="btn btn-outline-success mt-3">View Details</a>
           </div>
         </div>
         <div class="col-md-3">
           <div class="card stat-card p-4 text-center bg-white">
-            <h6>Cuộc hẹn</h6>
+            <h6>Appointments</h6>
             <h3 class="text-warning"><?= $pendingAppointments ?></h3>
-            <a href="appointments.php" class="btn btn-outline-warning mt-3">Xem chi tiết</a>
+            <a href="appointments.php" class="btn btn-outline-warning mt-3">View Details</a>
           </div>
         </div>
         <div class="col-md-3">
           <div class="card stat-card p-4 text-center bg-white">
-            <h6> Phản hồi thắc mắc</h6>
+            <h6>Feedback & Questions</h6>
             <h3 class="text-danger"><?= $patientFeedbacks ?></h3>
-            <a href="question.php" class="btn btn-outline-danger mt-3">Xem chi tiết</a>
+            <a href="question.php" class="btn btn-outline-danger mt-3">View Details</a>
           </div>
         </div>
       </div>
       <div class="row g-4 mb-5">
         <div class="col-lg-6">
           <div class="chart-card">
-            <h6>Số hẹn hôm nay</h6>
+            <h6>Appointments Today</h6>
             <canvas id="todayChart"></canvas>
           </div>
         </div>
         <div class="col-lg-6">
           <div class="chart-card">
-            <h6>Hẹn trong 7 ngày</h6>
+            <h6>Appointments in 7 Days</h6>
             <canvas id="weekChart"></canvas>
           </div>
         </div>
@@ -213,9 +213,9 @@ for ($i = 6; $i >= 0; $i--) {
     data: {
       labels: times,
       datasets: [{
-        label: 'Số hẹn',
+        label: 'Appointments',
         data: timeData,
-        backgroundColor: '#7c3aed' // tím đậm
+        backgroundColor: '#7c3aed' // dark purple
       }]
     },
     options: {
@@ -231,7 +231,7 @@ for ($i = 6; $i >= 0; $i--) {
     data: {
       labels: days,
       datasets: [{
-        label: 'Số hẹn',
+        label: 'Appointments',
         data: dayData,
         borderColor: '#9f7aea',
         fill: false,
