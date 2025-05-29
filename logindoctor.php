@@ -56,7 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result && $result->num_rows > 0) {
       $user = $result->fetch_assoc();
 
-      if ($password === $user['PasswordHash']) {
+      if (trim($password) == trim($user['PasswordHash'])) {
+
         // Xác thực vai trò chuyên sâu
         $role_verified = false;
         switch ($role) {

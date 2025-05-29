@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: May 27, 2025 at 09:28 AM
+-- Generation Time: May 29, 2025 at 06:32 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -62,14 +62,13 @@ CREATE TABLE `appointment` (
 --
 
 INSERT INTO `appointment` (`AppointmentID`, `PatientID`, `DoctorID`, `AppointmentDate`, `AppointmentTime`, `Reason`, `Status`, `CreateAt`, `ModifyAt`) VALUES
-(1, 1, 1, '2025-06-01', '09:00:00', 'Heart checkup', 'Scheduled', '2025-05-20 08:00:00', NULL),
-(2, 2, 2, '2025-06-02', '10:00:00', 'Neurological exam', 'Scheduled', '2025-05-21 09:00:00', NULL),
-(3, 3, 3, '2025-06-03', '11:00:00', 'Child fever', 'Completed', '2025-05-22 10:00:00', '2025-06-03 12:00:00'),
-(4, 4, 4, '2025-06-04', '14:00:00', 'Skin rash', 'Scheduled', '2025-05-23 11:00:00', NULL),
-(5, 5, 5, '2025-06-05', '13:00:00', 'Cancer consultation', 'Cancelled', '2025-05-24 12:00:00', '2025-05-25 09:00:00'),
-(6, 6, 6, '2025-06-06', '15:00:00', 'Pregnancy check', 'Scheduled', '2025-05-25 13:00:00', NULL),
-(7, 7, 7, '2025-06-07', '16:00:00', 'Mental health', 'Scheduled', '2025-05-26 14:00:00', NULL),
-(8, 1, 2, '2025-06-08', '09:30:00', 'Follow-up visit', 'Completed', '2025-05-27 15:00:00', '2025-06-08 10:00:00');
+(8, 10, 1, '2025-05-29', '09:00:00', 'Check blood pressure', 'confirmed', '2025-05-29 23:09:57', NULL),
+(9, 11, 1, '2025-06-12', '09:30:00', 'Chest pain', 'cancelled', '2025-05-29 23:09:57', NULL),
+(10, 12, 1, '2025-06-14', '10:00:00', 'Annual check-up', 'pending', '2025-05-29 23:09:57', NULL),
+(11, 13, 1, '2025-06-16', '10:30:00', 'Shortness of breath', 'Scheduled', '2025-05-29 23:09:57', NULL),
+(12, 14, 1, '2025-06-05', '11:00:00', 'Dizziness', 'Scheduled', '2025-05-29 23:09:57', NULL),
+(13, 15, 1, '2025-06-06', '11:30:00', 'High cholesterol', 'Scheduled', '2025-05-29 23:09:57', NULL),
+(14, 16, 1, '2025-06-07', '14:00:00', 'Follow-up', 'Scheduled', '2025-05-29 23:09:57', NULL);
 
 -- --------------------------------------------------------
 
@@ -110,13 +109,7 @@ CREATE TABLE `doctor` (
 --
 
 INSERT INTO `doctor` (`DoctorID`, `FirstName`, `LastName`, `Specialization`, `Department`, `PhoneNumber`, `Email`, `HireDate`, `avatar`) VALUES
-(1, 'John', 'Doe', 'Cardiologist', 'Cardiology', '123-456-7890', 'john@hospital.co', '2020-01-15 00:00:00', ''),
-(2, 'Jane', 'Smith', 'Neurologist', 'Neurology', '123-456-7891', 'jane.smith@hospital.com', '2019-05-20 00:00:00', ''),
-(3, 'Robert', 'Johnson', 'Pediatrician', 'Pediatrics', '123-456-7892', 'robert.j@hospital.com', '2018-08-10 00:00:00', ''),
-(4, 'Linda', 'Williams', 'Dermatologist', 'Dermatology', '123-456-7893', 'linda.w@hospital.com', '2021-03-05 00:00:00', ''),
-(5, 'Michael', 'Brown', 'Oncologist', 'Oncology', '123-456-7894', 'michael.b@hospital.com', '2017-11-25 00:00:00', ''),
-(6, 'Patricia', 'Jones', 'Gynecologist', 'Gynecology', '123-456-7895', 'patricia.j@hospital.com', '2022-02-28 00:00:00', ''),
-(7, 'David', 'Garcia', 'Psychiatrist', 'Psychiatry', '123-456-7896', 'david.g@hospital.com', '2016-09-12 00:00:00', '');
+(1, 'John', 'Doe', 'Internal Medicine', 'General', '0909999999', 'doctor1@hospital.com', '2023-01-01 00:00:00', '');
 
 -- --------------------------------------------------------
 
@@ -137,13 +130,13 @@ CREATE TABLE `medical_record` (
 --
 
 INSERT INTO `medical_record` (`RecordID`, `PatientID`, `Diagnosis`, `Treatment`, `Classification`) VALUES
-(1, 1, 'Hypertension', 'Lifestyle changes and medication', 'Chronic'),
-(2, 2, 'Migraine', 'Pain management and monitoring', 'Chronic'),
-(3, 3, 'Upper respiratory infection', 'Antibiotics and rest', 'Acute'),
-(4, 4, 'Eczema', 'Topical steroids', 'Chronic'),
-(5, 5, 'Breast cancer', 'Chemotherapy', 'Chronic'),
-(6, 6, 'Pregnancy', 'Prenatal vitamins and checkups', 'Normal'),
-(7, 7, 'Depression', 'Psychotherapy and medication', 'Chronic');
+(1, 10, 'Hypertension', 'Lisinopril 10mg daily', 'Chronic'),
+(2, 11, 'Arrhythmia', 'Monitor ECG, beta blockers', 'Chronic'),
+(3, 12, 'Normal check-up', 'No issues', 'Normal'),
+(4, 13, 'COPD', 'Inhalers, pulmonary rehab', 'Chronic'),
+(5, 14, 'Vertigo', 'Physical therapy, meds', 'Acute'),
+(6, 15, 'High cholesterol', 'Statins, diet changes', 'Chronic'),
+(7, 16, 'Post-stent review', 'Review medication and lifestyle', 'Follow-up');
 
 -- --------------------------------------------------------
 
@@ -167,13 +160,11 @@ CREATE TABLE `medication` (
 --
 
 INSERT INTO `medication` (`MedicationID`, `PatientID`, `MedicationName`, `Dosage`, `StartDate`, `EndDate`, `Instructions`, `PrescribedByID`) VALUES
-(1, 1, 'Lisinopril', '10 mg daily', '2025-05-01', '2025-11-01', 'Take with food', 1),
-(2, 2, 'Ibuprofen', '200 mg every 6 hours', '2025-05-03', '2025-05-10', 'Take as needed for pain', 2),
-(3, 3, 'Amoxicillin', '500 mg every 8 hours', '2025-05-05', '2025-05-15', 'Complete the course', 3),
-(4, 4, 'Hydrocortisone cream', 'Apply twice daily', '2025-05-07', '2025-06-07', 'Apply to affected area', 4),
-(5, 5, 'Tamoxifen', '20 mg daily', '2025-05-09', '2026-05-09', 'Take at the same time daily', 5),
-(6, 6, 'Folic acid', '400 mcg daily', '2025-05-11', '2025-08-11', 'Take after meals', 6),
-(7, 7, 'Sertraline', '50 mg daily', '2025-05-13', '2025-11-13', 'Take in the morning', 7);
+(1, 10, 'Lisinopril', '10 mg daily', '2025-06-01', '2025-12-01', 'Take after breakfast', 1),
+(2, 11, 'Metoprolol', '50 mg twice daily', '2025-06-02', '2025-12-02', 'Before meals', 1),
+(3, 13, 'Salbutamol Inhaler', '2 puffs every 4 hours', '2025-06-04', '2025-09-04', 'Inhale deeply', 1),
+(4, 14, 'Meclizine', '25 mg as needed', '2025-06-05', '2025-07-05', 'Avoid driving', 1),
+(5, 15, 'Atorvastatin', '20 mg at night', '2025-06-06', '2025-12-06', 'Take with water', 1);
 
 -- --------------------------------------------------------
 
@@ -197,13 +188,13 @@ CREATE TABLE `patient` (
 --
 
 INSERT INTO `patient` (`PatientID`, `FirstName`, `LastName`, `DateOfBirth`, `Gender`, `Address`, `PhoneNumber`, `RegistrationDate`) VALUES
-(1, 'David', 'Brown', '1985-07-15', 'Male', '123 Main St', '123-456-7892', '2025-05-06 13:18:00'),
-(2, 'Emily', 'Davis', '1992-05-30', 'Female', '456 Oak St', '123-456-7893', '2025-05-06 13:18:00'),
-(3, 'Michael', 'Wilson', '1978-11-20', 'Male', '789 Pine St', '123-456-7894', '2025-05-07 08:30:00'),
-(4, 'Sarah', 'Miller', '1989-03-10', 'Female', '321 Maple Ave', '123-456-7895', '2025-05-07 09:00:00'),
-(5, 'James', 'Moore', '1995-09-05', 'Male', '654 Elm St', '123-456-7896', '2025-05-08 10:15:00'),
-(6, 'Jessica', 'Taylor', '1982-12-22', 'Female', '987 Cedar Rd', '123-456-7897', '2025-05-08 11:00:00'),
-(7, 'William', 'Anderson', '1990-06-17', 'Male', '159 Spruce Ln', '123-456-7898', '2025-05-09 12:00:00');
+(10, 'Alice', 'Nguyen', '1990-01-10', 'Female', 'HCM', '0901000001', '2025-05-29 23:07:19'),
+(11, 'Binh', 'Tran', '1988-04-22', 'Male', 'HCM', '0901000002', '2025-05-29 23:07:19'),
+(12, 'Chi', 'Le', '1975-06-15', 'Female', 'HCM', '0901000003', '2025-05-29 23:07:19'),
+(13, 'Dung', 'Pham', '1983-09-30', 'Male', 'HCM', '0901000004', '2025-05-29 23:07:19'),
+(14, 'Emi', 'Vu', '1995-11-01', 'Female', 'HCM', '0901000005', '2025-05-29 23:07:19'),
+(15, 'Phong', 'Ho', '1980-07-07', 'Male', 'HCM', '0901000006', '2025-05-29 23:07:19'),
+(16, 'Nga', 'Dang', '1992-02-25', 'Female', 'HCM', '0901000007', '2025-05-29 23:07:19');
 
 -- --------------------------------------------------------
 
@@ -227,13 +218,13 @@ CREATE TABLE `question` (
 --
 
 INSERT INTO `question` (`QuestionID`, `DoctorID`, `PatientID`, `Question`, `QuestionDate`, `Answer`, `AnswerDate`, `IsAnswered`) VALUES
-(1, 1, 1, 'What is the dosage of Lisinopril?', '2025-06-01 10:00:00', '10 mg daily after meals', '2025-06-01 15:00:00', 1),
-(2, 2, 2, 'Can I take Ibuprofen on an empty stomach?', '2025-06-02 11:00:00', 'It is better to take with food.', '2025-06-02 16:00:00', 1),
-(3, 3, 3, 'When should I stop taking antibiotics?', '2025-06-03 12:00:00', NULL, NULL, 0),
-(4, 4, 4, 'Is the cream safe during pregnancy?', '2025-06-04 13:00:00', 'Consult your obstetrician.', '2025-06-05 09:00:00', 1),
-(5, 5, 5, 'What side effects does Tamoxifen have?', '2025-06-05 14:00:00', NULL, NULL, 0),
-(6, 6, 6, 'How often should I take folic acid?', '2025-06-06 15:00:00', 'Daily, as prescribed.', '2025-06-06 17:00:00', 1),
-(7, 7, 7, 'Can sertraline cause drowsiness?', '2025-06-07 16:00:00', 'Yes, especially in the first weeks.', '2025-06-08 10:00:00', 1);
+(11, 1, 12, 'How often should I get a blood test?', '2025-05-29 23:28:59', 'Every 6-12 months depending on your condition.', '2025-05-29 23:30:00', 1),
+(12, 1, 13, 'Is dizziness a sign of something serious?', '2025-05-29 23:28:59', 'Sometimes, especially if persistent. Get checked.', '2025-05-29 23:35:00', 1),
+(13, 1, 10, 'Should I avoid caffeine with high blood pressure?', '2025-05-29 23:28:59', 'Yes, moderate your intake.', '2025-05-29 23:38:00', 1),
+(14, 1, 14, 'Can I stop taking cholesterol meds if I feel fine?', '2025-05-29 23:28:59', NULL, NULL, 0),
+(15, 1, 11, 'What causes sudden chest tightness at night?', '2025-05-29 23:28:59', NULL, NULL, 0),
+(16, 1, 12, 'Do I need to fast before a glucose test?', '2025-05-29 23:28:59', NULL, NULL, 0),
+(17, 1, 13, 'Can stress affect my blood pressure readings?', '2025-05-29 23:28:59', NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -250,22 +241,17 @@ CREATE TABLE `user` (
   `LinkedID` int(11) DEFAULT NULL,
   `CreatedAt` datetime DEFAULT current_timestamp(),
   `LastLogin` datetime DEFAULT NULL,
-  `IsActive` tinyint(1) DEFAULT 1,
-  `avatar` varchar(255) NOT NULL
+  `IsActive` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `user`
 --
 
-INSERT INTO `user` (`UserID`, `Username`, `PasswordHash`, `Role`, `Email`, `LinkedID`, `CreatedAt`, `LastLogin`, `IsActive`, `avatar`) VALUES
-(1, 'admin', 'hashedpassword123', 'admin', 'admin@hospital.com', NULL, '2025-01-01 08:00:00', '2025-06-01 09:00:00', 1, ''),
-(2, 'doctor1', 'hashedpassword234', 'doctor', 'doctor1@hospital.com', 1, '2025-01-05 08:00:00', '2025-06-01 09:30:00', 1, ''),
-(3, 'nurse1', 'hashedpassword345', 'nurse', 'nurse1@hospital.com', 2, '2025-01-10 08:00:00', '2025-06-01 10:00:00', 1, ''),
-(4, 'doctor2', 'hashedpassword456', 'doctor', 'doctor2@hospital.com', 3, '2025-02-01 08:00:00', NULL, 1, ''),
-(5, 'nurse2', 'hashedpassword567', 'nurse', 'nurse2@hospital.com', 4, '2025-02-15 08:00:00', NULL, 1, ''),
-(6, 'doctor3', 'hashedpassword678', 'doctor', 'doctor3@hospital.com', 5, '2025-03-01 08:00:00', NULL, 1, ''),
-(7, 'nurse3', 'hashedpassword789', 'nurse', 'nurse3@hospital.com', 6, '2025-03-15 08:00:00', NULL, 1, '');
+INSERT INTO `user` (`UserID`, `Username`, `PasswordHash`, `Role`, `Email`, `LinkedID`, `CreatedAt`, `LastLogin`, `IsActive`) VALUES
+(8, 'admin', 'hashedpassword123', 'admin', NULL, NULL, '2025-05-29 23:14:40', '2025-05-29 23:14:40', 1),
+(9, 'doctor1', '123', 'doctor', NULL, 1, '2025-05-29 23:14:40', '2025-05-29 23:14:40', 1),
+(10, 'nurse1', 'hashedpassword345', 'nurse', NULL, 2, '2025-05-29 23:14:40', '2025-05-29 23:14:40', 1);
 
 --
 -- Indexes for dumped tables
@@ -336,7 +322,7 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT for table `appointment`
 --
 ALTER TABLE `appointment`
-  MODIFY `AppointmentID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `AppointmentID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `audit_log`
@@ -360,25 +346,25 @@ ALTER TABLE `medical_record`
 -- AUTO_INCREMENT for table `medication`
 --
 ALTER TABLE `medication`
-  MODIFY `MedicationID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `MedicationID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `patient`
 --
 ALTER TABLE `patient`
-  MODIFY `PatientID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `PatientID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `question`
 --
 ALTER TABLE `question`
-  MODIFY `QuestionID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `QuestionID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `UserID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `UserID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- Constraints for dumped tables
